@@ -34,27 +34,28 @@ export default function Home() {
     }
   };
 
-  // Fungsi Force Download cerdas (Browser Blob + Fallback Proxy)
-  const downloadFile = async (mediaUrl, defaultFilename) => {
+  // Unduh langsung di browser pengguna (Bypass Serverless Proxy)
+  const downloadDirect = async (mediaUrl, filename) => {
     setDownloading(true);
     try {
-      // OPSI 1: Unduh via Client-side Blob (Paling Cepat & Anti-Potong Vercel)
-      const res = await fetch(mediaUrl);
-      if (!res.ok) throw new Error('CORS Blocked');
+      const response = await fetch(mediaUrl);
+      if (!response.ok) throw new Error('CORS');
 
-      const blob = await res.blob();
+      const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
+
       const a = document.createElement('a');
+      a.style.display = 'none';
       a.href = blobUrl;
-      a.download = defaultFilename;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
-      a.remove();
+
       window.URL.revokeObjectURL(blobUrl);
+      a.remove();
     } catch (err) {
-      // OPSI 2: Fallback ke Proxy Stream Backend
-      const proxyUrl = `/api/proxy-download?url=${encodeURIComponent(mediaUrl)}&filename=${defaultFilename}`;
-      window.location.href = proxyUrl;
+      // Jika browser memblokir fetch langsung, buka URL media di tab baru
+      window.open(mediaUrl, '_blank');
     } finally {
       setDownloading(false);
     }
@@ -98,7 +99,7 @@ export default function Home() {
                 Memproses Reels...
               </span>
             ) : (
-              'Get Video Link'
+              'Download Reels'
             )}
           </button>
         </form>
@@ -129,7 +130,7 @@ export default function Home() {
             <div className="flex flex-col w-full gap-3">
               {result.downloads.mp4_video && (
                 <button
-                  onClick={() => downloadFile(result.downloads.mp4_video, 'instagram_reel.mp4')}
+                  onClick={() => downloadDirect(result.downloads.mp4_video, 'instagram_reel.mp4')}
                   disabled={downloading}
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-center font-medium py-3 rounded-xl text-sm transition shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
                 >
@@ -140,30 +141,16 @@ export default function Home() {
                 </button>
               )}
 
-              {result.downloads.hd_video && (
-                <button
-                  onClick={() => downloadFile(result.downloads.hd_video, 'instagram_reel_hd.mp4')}
-                  disabled={downloading}
-                  className="w-full bg-indigo-600 hover:bg-indigo-500 text-center font-medium py-3 rounded-xl text-sm transition shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
+              {/* Cadangan jika browser memblokir Blob Download */}
+              {result.downloads.mp4_video && (
+                <a
+                  href={result.downloads.mp4_video}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-center font-medium py-2.5 rounded-xl text-xs transition border border-slate-700 flex items-center justify-center gap-2"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                  </svg>
-                  {downloading ? 'Mengunduh File...' : 'Download Video HD'}
-                </button>
-              )}
-
-              {result.downloads.music_mp3 && (
-                <button
-                  onClick={() => downloadFile(result.downloads.music_mp3, 'instagram_audio.mp3')}
-                  disabled={downloading}
-                  className="w-full bg-purple-600 hover:bg-purple-500 text-center font-medium py-3 rounded-xl text-sm transition shadow-md flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19V6l12-2v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12 0c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-2"></path>
-                  </svg>
-                  {downloading ? 'Mengunduh File...' : 'Download Audio (MP3)'}
-                </button>
+                  Link Cadangan (Buka / Simpan via Tab Baru)
+                </a>
               )}
             </div>
           </div>
